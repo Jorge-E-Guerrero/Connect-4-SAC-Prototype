@@ -72,21 +72,26 @@ class SAC:
 
 
     def choose_action(self, agent, state, env):
-        action_mask = torch.tensor(state["action_mask"])
-        state_tensor = torch.FloatTensor(np.array(state["observation"]).reshape(1,-1))
-        
-        q_values = self.policy_net(state_tensor)
-        max, min= torch.max(q_values), torch.min(q_values)
-        q_values = (q_values-min) / (max-min)
-        valid_actions = action_mask *  q_values
+        if np.random.random() < self.epsilon:
+            action = env.action_space(agent).sample(state["action_mask"])
+        else:
+            action_mask = torch.tensor(state["action_mask"])
+            state_tensor = torch.FloatTensor(np.array(state["observation"]).reshape(1,-1))
+            
+            q_values = self.policy_net(state_tensor)
+            max, min= torch.max(q_values), torch.min(q_values)
+            q_values = (q_values-min) / (max-min)
+            valid_actions = action_mask *  q_values
 
-        #self.probs = valid_actions
+            print(valid_actions)
+            
+            # self.probs = valid_actions
 
-        action = np.argmax(valid_actions.detach().numpy())
+            action = np.argmax(valid_actions.detach().numpy())
 
 
-        #self.policy_net.train()
-        self.decrement_epsilon()
+            #self.policy_net.train()
+            self.decrement_epsilon()
 
         return action
     
@@ -182,7 +187,7 @@ class SAC:
         self.target_net_1.load_state_dict(checkpoint['target_net_1'])
         self.target_net_2.load_state_dict(checkpoint['target_net_2'])
 
-        self.policy_net.eval()
+        self.policy_net.train()
         self.critic_net_1.eval()
         self.critic_net_2.eval()
         self.target_net_1.eval()
